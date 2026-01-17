@@ -2302,6 +2302,7 @@ function isValidSentence(text) {
 
 // "通顺度"与基本语法/语义检查
 // 参考种子库中的句子风格，调整判定逻辑使其更宽松合理
+// 支持玩家创作的合理歌词：只要包含常见词语组合或符合基本语法结构即可通过
 function isBasicallyFluent(text) {
     const chars = text.split('');
 
@@ -2340,33 +2341,48 @@ function isBasicallyFluent(text) {
     const length = text.length;
     const coverageRatio = knownWordCharCoverage / length; // 被"认识"的字比例
 
-    // 1. 词语搭配合理性：至少有一个 2+ 字的已知词，且覆盖率不能太低
-    // 参考种子库：很多4字句，放宽要求
-    const hasMultiCharWord = tokens.some(
+    // 放宽判定：如果包含任何已知的2字或以上词语，就认为合理
+    // 这样可以支持更多玩家创作的歌词
+    const hasKnownWord = tokens.some(
         t => t.word.length >= 2 && t.pos && t.pos !== 'unknown'
     );
-    if (!hasMultiCharWord) return false;
     
-    // 对于4字句，覆盖率要求降低（种子库中很多是成语或固定搭配）
-    const minCoverage = length <= 4 ? 0.4 : 0.5;
-    if (coverageRatio < minCoverage) return false;
+    // 如果至少有一个已知的多字词，且覆盖率不太低，就认为合理
+    if (hasKnownWord) {
+        // 对于较短句子（4-5字），覆盖率要求更宽松（30%即可）
+        // 对于较长句子（6字以上），要求40%覆盖率
+        const minCoverage = length <= 5 ? 0.3 : 0.4;
+        if (coverageRatio >= minCoverage) {
+            // 确保不是全虚词
+            const hasContentWord = nounLike > 0 || pronounLike > 0 || verbLike > 0 || adjLike > 0;
+            if (hasContentWord) {
+                return true;
+            }
+        }
+    }
 
-    // 2. 基础语法结构：参考种子库，放宽要求
+    // 3. 基础语法结构检查：参考种子库，支持多种结构
     // 种子库中有很多结构：动宾、主谓、偏正、并列等
-    // 不强制要求"名词/代词 + 动词"，只要有动词或形容词即可
     const hasVerbOrAdj = verbLike > 0 || adjLike > 0;
     const hasContentWord = nounLike > 0 || pronounLike > 0 || verbLike > 0 || adjLike > 0;
     
     // 如果完全没有实词，判不通过
     if (!hasContentWord) return false;
     
-    // 对于4字句，允许只有名词+形容词的结构（如"夜色茫茫"）
-    if (length <= 4 && (nounLike > 0 && adjLike > 0)) {
+    // 对于4-5字句，允许只有名词+形容词的结构（如"夜色茫茫"）
+    if (length <= 5 && (nounLike > 0 && adjLike > 0)) {
         return true;
     }
     
-    // 其他情况，至少要有动词或形容词
-    if (!hasVerbOrAdj) return false;
+    // 对于较短句子，如果至少有一个动词或形容词，且覆盖率不太低，就通过
+    if (length <= 5 && hasVerbOrAdj && coverageRatio >= 0.3) {
+        return true;
+    }
+    
+    // 对于较长句子，至少要有动词或形容词，且覆盖率要求稍高
+    if (length > 5 && hasVerbOrAdj && coverageRatio >= 0.4) {
+        return true;
+    }
 
     // 排除"全虚词组合"（如"的的了就"）
     const nonParticleTokens = tokens.filter(
@@ -2374,17 +2390,13 @@ function isBasicallyFluent(text) {
     );
     if (particleCount > 0 && nonParticleTokens.length === 0) return false;
 
-    // 3. 语义连贯性（非常粗略）：
-    // - 大部分字应处在已知词语里
-    // - 孤立的未知单字不能太多
-    // 对于4字句，放宽要求（参考种子库中的成语和固定搭配）
-    const minCoverageRatio = length <= 4 ? 0.5 : 0.6;
-    if (coverageRatio < minCoverageRatio) return false;
-    
-    const maxUnknownRatio = length <= 4 ? 0.6 : 0.5;
-    if (unknownSingleCount > length * maxUnknownRatio) return false;
-
+    // 4. 最终宽松检查：如果句子包含至少2个不同字符，且至少30%的字在词典中，就通过
+    // 这样可以支持更多玩家创作的创意歌词
+    if (coverageRatio >= 0.3 && hasContentWord) {
     return true;
+    }
+
+    return false;
 }
 
 // 将句子按 3/2/1 字优先级切分成词语 token，并附上简易“词性”
