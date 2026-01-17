@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>韵脚大师 Rhymemaster</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="game-root">
+        <!-- 视差背景层（由JavaScript动态创建） -->
+        <div class="parallax-container"></div>
+        <!-- 韵部解锁进度指示器 -->
+        <div id="rhyme-progress-indicator" class="rhyme-progress-indicator">0/13</div>
+        <!-- 音乐控制按钮 -->
+        <button id="music-toggle-btn" class="music-toggle-btn" title="暂停/播放音乐">
+            <span class="music-icon">♪</span>
+        </button>
+        <!-- 背景音乐 -->
+        <audio id="bg-music" loop preload="auto">
+            <source src="Pixel Teacup Puzzles.mp3" type="audio/mpeg">
+        </audio>
+        <div class="container">
+            <div class="level-panel">
+                <div class="level-meta">
+                    <span id="level-indicator" class="level-indicator">第 1 关</span>
+                </div>
+                <div id="upper-line" class="upper-line">穿过幽暗的岁月，___________</div>
+            </div>
+            <div class="word-banner"></div>
+            <div class="grid-controls">
+                <button id="check-sentence-btn" class="secondary-btn">检测下半句</button>
+            </div>
+            <div class="grid-wrapper">
+                <label id="mode-toggle-btn" class="mode-toggle-switch">
+                    <input type="checkbox" id="mode-toggle-input" class="toggle" />
+                    <span class="slider"></span>
+                    <span class="mode-label-left">交换</span>
+                    <span class="mode-label-right">填句</span>
+                </label>
+                <div class="brutalist-container steps-container">
+                    <input
+                        id="steps-indicator"
+                        class="brutalist-input smooth-type steps-input"
+                        type="text"
+                        readonly
+                        value="50"
+                    />
+                    <label class="brutalist-label steps-label">剩余步数</label>
+                </div>
+                <div id="row-handles" class="row-handles"></div>
+                <div class="grid-with-col-handles">
+                    <div id="col-handles" class="col-handles"></div>
+                    <div id="grid-container" class="grid-container"></div>
+                </div>
+            </div>
+            <div class="status">
+                <div id="message" class="message"></div>
+                <button id="reset-btn" class="reset-btn">重新开始</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 开始游戏弹窗 -->
+    <div id="start-dialog" class="start-dialog active">
+        <div class="start-dialog-overlay"></div>
+        <div class="start-dialog-content">
+            <button id="get-started-btn" class="get-started-btn">
+                Get started
+                <span></span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- 检测结果对话框 -->
+    <div id="result-dialog" class="result-dialog">
+        <div class="result-dialog-overlay"></div>
+        <div class="result-dialog-content">
+            <div class="result-dialog-header">
+                <h2 id="result-dialog-title">检测结果</h2>
+                <button class="result-dialog-close" id="result-dialog-close">&times;</button>
+            </div>
+            <div class="result-dialog-body">
+                <div id="result-dialog-message" class="result-message"></div>
+            </div>
+            <div class="result-dialog-footer">
+                <button id="result-dialog-confirm" class="result-confirm-btn">确定</button>
+            </div>
+        </div>
+    </div>
+    
+    <script src="script.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,1122 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Microsoft YaHei', 'SimHei', Arial, sans-serif;
+    background: #0c0c0c;
+    min-height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start; /* 顶部对齐 */
+    padding: 0;
+    padding-left: 20px;
+    padding-right: 20px;
+    overflow: auto;
+    position: relative;
+}
+
+/* 视差背景容器（位于game-root内部） */
+.parallax-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none; /* 不阻挡鼠标事件 */
+}
+
+/* 视差背景层 */
+.parallax-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    will-change: transform;
+    /* 使用transform而不是transition，通过requestAnimationFrame实现平滑动画 */
+    /* 确保背景图片覆盖整个game-root区域 */
+    min-width: 100%;
+    min-height: 100%;
+}
+
+.game-viewport {
+    position: relative;
+    width: 720px;
+    height: 1280px;
+}
+
+#game-root {
+    position: relative;
+    width: 720px;
+    min-height: 1280px; /* 改为 min-height，允许内容超出时自动扩展 */
+    transform-origin: center top; /* 缩放时从顶部中心开始 */
+    background: #0d0d0d; /* 默认背景色 */
+    z-index: 1;
+    overflow: hidden; /* 确保视差层不会溢出 */
+}
+
+.container {
+    position: relative; /* 确保在视差层之上 */
+    z-index: 1; /* 确保内容在视差层之上 */
+    background: transparent;
+    border-radius: 20px;
+    padding: 0; /* 由LAYOUT_CONFIG统一管理 */
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 700px;
+    width: 100%;
+    min-height: 100%; /* 确保容器至少占满游戏根容器高度 */
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 20px;
+    font-size: 2em;
+}
+
+.instructions {
+    text-align: center;
+    color: #666;
+    margin-bottom: 30px;
+    padding: 10px;
+    background: #f5f5f5;
+    border-radius: 10px;
+}
+
+.level-panel {
+    margin: -10px 0 16px;
+    padding: 12px 14px;
+    background: #f3f6ff;
+    border: 1px solid #dbe3ff;
+    border-radius: 12px;
+}
+
+.level-meta {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+}
+
+.level-indicator {
+    display: inline-block;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: rgba(102, 126, 234, 0.12);
+    color: #5568d3;
+    font-weight: bold;
+    font-size: 0.9em;
+    transform: translateY(-20px); /* Y轴偏移值，负值向上，正值向下 */
+}
+
+/* Brutalist风格步数显示 */
+.steps-container {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 150px;
+    font-family: monospace;
+    z-index: 10;
+}
+
+.steps-input {
+    width: 100%;
+    padding: 10px;
+    font-size: 22.4px;
+    font-weight: bold;
+    color: #f44336;
+    background-color: #fff;
+    border: 4px solid #000;
+    position: relative;
+    overflow: hidden;
+    border-radius: 0;
+    outline: none;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+    box-shadow: 5px 5px 0 #000, 10px 10px 0 #4a90e2;
+    text-align: center;
+    cursor: default;
+}
+
+.steps-input.steps-warning {
+    box-shadow: 5px 5px 0 #000, 10px 10px 0 #ff9800;
+}
+
+.steps-input.steps-danger {
+    box-shadow: 5px 5px 0 #000, 10px 10px 0 #f44336;
+    animation: pulse 1s infinite;
+}
+
+.steps-label {
+    position: absolute;
+    left: -3px;
+    top: -35px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #fff;
+    background-color: #000;
+    padding: 5px 10px;
+    transform: rotate(-1deg);
+    z-index: 1;
+    transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+.steps-input.steps-warning + .steps-label {
+    background-color: #ff9800;
+}
+
+.steps-input.steps-danger + .steps-label {
+    background-color: #f44336;
+}
+
+@keyframes glitch {
+    0% {
+        transform: translate(0);
+    }
+    20% {
+        transform: translate(-2px, 2px);
+    }
+    40% {
+        transform: translate(-2px, -2px);
+    }
+    60% {
+        transform: translate(2px, 2px);
+    }
+    80% {
+        transform: translate(2px, -2px);
+    }
+    100% {
+        transform: translate(0);
+    }
+}
+
+.steps-input:focus {
+    animation: focus-pulse 4s cubic-bezier(0.25, 0.8, 0.25, 1) infinite;
+}
+
+.steps-input:focus::after {
+    content: "";
+    position: absolute;
+    top: -2px;
+    left: -2px;
+    right: -2px;
+    bottom: -2px;
+    background: white;
+    z-index: -1;
+}
+
+.steps-input:focus::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: black;
+    z-index: -2;
+    clip-path: inset(0 100% 0 0);
+    animation: glitch-slice 4s steps(2, end) infinite;
+}
+
+@keyframes glitch-slice {
+    0% {
+        clip-path: inset(0 100% 0 0);
+    }
+    10% {
+        clip-path: inset(0 5% 0 0);
+    }
+    20% {
+        clip-path: inset(0 80% 0 0);
+    }
+    30% {
+        clip-path: inset(0 10% 0 0);
+    }
+    40% {
+        clip-path: inset(0 50% 0 0);
+    }
+    50% {
+        clip-path: inset(0 30% 0 0);
+    }
+    60% {
+        clip-path: inset(0 70% 0 0);
+    }
+    70% {
+        clip-path: inset(0 15% 0 0);
+    }
+    80% {
+        clip-path: inset(0 90% 0 0);
+    }
+    90% {
+        clip-path: inset(0 5% 0 0);
+    }
+    100% {
+        clip-path: inset(0 100% 0 0);
+    }
+}
+
+.smooth-type::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: linear-gradient(90deg, #fff 0%, rgba(255, 255, 255, 0) 100%);
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.smooth-type:focus::before {
+    opacity: 1;
+    animation: type-gradient 2s linear infinite;
+}
+
+@keyframes type-gradient {
+    0% {
+        background-position: 300px 0;
+    }
+    100% {
+        background-position: 0 0;
+    }
+}
+
+@keyframes focus-pulse {
+    0%,
+    100% {
+        border-color: #000;
+    }
+    50% {
+        border-color: #4a90e2;
+    }
+}
+
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+.upper-line {
+    position: relative;
+    text-align: center;
+    font-size: 1.15em;
+    font-weight: bold;
+    color: #333;
+    letter-spacing: 0.5px;
+}
+
+/* 选中的文字显示在横线上方，红色 */
+.upper-line .selected-text-above-line {
+    position: absolute;
+    top: -1.2em; /* 显示在横线上方 */
+    left: 50%;
+    /* transform 由 LAYOUT_CONFIG 动态设置，包括 translateX(-50%) 和偏移值 */
+    color: #f44336; /* 红色 */
+    font-size: 1em;
+    font-weight: bold;
+    white-space: nowrap;
+    z-index: 1;
+}
+
+.grid-wrapper {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 20px;
+}
+
+.grid-with-col-handles {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+}
+
+.grid-container {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 5px;
+    padding: 10px;
+    border-radius: 10px;
+    background: url("img/bg_word_01.png") center center / contain no-repeat;
+}
+
+/* 行手柄容器（左侧） */
+.row-handles {
+    position: relative;
+    width: 40px;
+    margin-right: 5px;
+    /* 高度需要与grid-container匹配 */
+    min-height: 100%;
+}
+
+/* 列手柄容器（上方） */
+.col-handles {
+    position: relative;
+    height: 40px;
+    margin-bottom: 5px;
+    /* 宽度需要与grid-container匹配 */
+    width: 100%;
+}
+
+/* 行交换按钮（位于两行之间） */
+.row-swap-btn {
+    width: 30px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(102, 126, 234, 0.1);
+    border: 2px solid #667eea;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #667eea;
+    transition: all 0.2s ease;
+    user-select: none;
+    font-weight: bold;
+    z-index: 5;
+}
+
+.row-swap-btn:hover {
+    background: rgba(102, 126, 234, 0.2);
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.row-swap-btn:active {
+    transform: translateY(-50%) scale(0.95);
+}
+
+/* 列交换按钮（位于两列之间） */
+.col-swap-btn {
+    width: 20px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(102, 126, 234, 0.1);
+    border: 2px solid #667eea;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #667eea;
+    transition: all 0.2s ease;
+    user-select: none;
+    font-weight: bold;
+    z-index: 5;
+}
+
+.col-swap-btn:hover {
+    background: rgba(102, 126, 234, 0.2);
+    transform: translateX(-50%) scale(1.1);
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.col-swap-btn:active {
+    transform: translateX(-50%) scale(0.95);
+}
+
+/* 交换动画 */
+.grid-cell.swapping-row {
+    animation: swapRowAnimation 0.4s ease-in-out;
+    z-index: 10;
+}
+
+.grid-cell.swapping-col {
+    animation: swapColAnimation 0.4s ease-in-out;
+    z-index: 10;
+}
+
+@keyframes swapRowAnimation {
+    0% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(var(--swap-distance, 0));
+    }
+    100% {
+        transform: translateY(0);
+    }
+}
+
+@keyframes swapColAnimation {
+    0% {
+        transform: translateX(0);
+    }
+    50% {
+        transform: translateX(var(--swap-distance, 0));
+    }
+    100% {
+        transform: translateX(0);
+    }
+}
+
+.grid-cell {
+    aspect-ratio: 1;
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    transition-timing-function: linear(0, 0.012 0.9%, 0.05 2%, 0.411 9.2%, 0.517 11.8%, 0.611 14.6%, 0.694 17.7%, 0.765 21.1%, 0.824 24.8%, 0.872 28.9%, 0.91 33.4%, 0.939 38.4%, 0.977 50.9%, 0.994 68.4%, 1);
+    font-weight: bold;
+    color: #333;
+    user-select: none;
+}
+
+.grid-cell:hover {
+    background: #e8f4f8;
+    border-color: #667eea;
+    transform: scale(1.05);
+}
+
+.grid-cell.selected {
+    background: #667eea;
+    color: white;
+    border-color: #5568d3;
+    transform: scale(1.1);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.grid-cell.swapping {
+    animation: swapAnimation 0.3s ease;
+    animation-timing-function: linear(0, 0.012 0.9%, 0.05 2%, 0.411 9.2%, 0.517 11.8%, 0.611 14.6%, 0.694 17.7%, 0.765 21.1%, 0.824 24.8%, 0.872 28.9%, 0.91 33.4%, 0.939 38.4%, 0.977 50.9%, 0.994 68.4%, 1);
+}
+
+@keyframes swapAnimation {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.15);
+    }
+}
+
+.status {
+    text-align: center;
+}
+
+.message {
+    display: none; /* 隐藏说明文字，让玩家自己探索游戏规则 */
+    min-height: 30px;
+    margin-bottom: 15px;
+    font-size: 1.1em;
+    font-weight: bold;
+    color: #667eea;
+}
+
+.message.success {
+    color: #4caf50;
+}
+
+.message.error {
+    color: #f44336;
+}
+
+/* legacy: controls (旧版本切换模式按钮) */
+
+.sentence-panel {
+    margin-bottom: 15px;
+    padding: 10px 12px;
+    background: #f7f3ff;
+    border-radius: 10px;
+    border: 1px solid #e0dbff;
+    font-size: 0.95em;
+}
+
+.sentence-label {
+    color: #666;
+    margin-bottom: 4px;
+}
+
+.sentence-content {
+    min-height: 28px;
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 6px;
+}
+
+/* 模式切换开关按钮 */
+.mode-toggle-switch {
+    --input-focus: #2d8cf0;
+    --font-color: #323232;
+    --font-color-sub: #666;
+    --bg-color: #fff;
+    --bg-color-alt: #666;
+    --main-color: #323232;
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: 50px;
+    height: 20px;
+    z-index: 10;
+}
+
+.mode-toggle-switch .toggle {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+}
+
+.mode-toggle-switch .slider {
+    box-sizing: border-box;
+    border-radius: 5px;
+    border: 2px solid var(--main-color);
+    box-shadow: 4px 4px var(--main-color);
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--bg-color);
+    transition: 0.3s;
+}
+
+.mode-toggle-switch .slider:before {
+    box-sizing: border-box;
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    border: 2px solid var(--main-color);
+    border-radius: 5px;
+    left: -2px;
+    bottom: 2px;
+    background-color: var(--bg-color);
+    box-shadow: 0 3px 0 var(--main-color);
+    transition: 0.3s;
+}
+
+.mode-toggle-switch .toggle:checked + .slider {
+    background-color: var(--input-focus);
+}
+
+.mode-toggle-switch .toggle:checked + .slider:before {
+    transform: translateX(30px);
+}
+
+.mode-label-left,
+.mode-label-right {
+    position: absolute;
+    font-size: 1.1em;
+    font-weight: bold;
+    z-index: 2;
+    transition: color 0.3s ease-out;
+    user-select: none;
+    pointer-events: none;
+    top: 50%;
+    transform: translateY(-50%);
+    white-space: nowrap;
+    color: #fff;
+}
+
+.mode-label-left {
+    right: calc(100% + 15px); /* 位于按钮左侧，间隔15px */
+}
+
+.mode-label-right {
+    left: calc(100% + 15px); /* 位于按钮右侧，间隔15px */
+}
+
+/* 选中状态（填句模式） */
+.mode-toggle-switch.checked .mode-label-left {
+    color: #fff;
+}
+
+.mode-toggle-switch.checked .mode-label-right {
+    color: #fff;
+}
+
+.mode-toggle-switch:focus-within {
+    outline: 0;
+}
+
+.secondary-btn {
+    cursor: pointer;
+    display: flex;
+    gap: 0.5rem;
+    border: none;
+    transition: all 0.5s cubic-bezier(0.165, 0.84, 0.44, 1);
+    border-radius: 100px;
+    font-weight: 800;
+    place-content: center;
+    padding: 0.75rem 1rem;
+    font-size: 0.825rem;
+    line-height: 1rem;
+    background-color: rgba(0, 0, 0, 0.4);
+    box-shadow:
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.04),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    color: #fff;
+    margin-left: 6px;
+}
+
+.secondary-btn:hover {
+    box-shadow:
+        inset 0 1px 0 0 rgba(255, 255, 255, 0.08),
+        inset 0 0 0 1px rgba(252, 232, 3, 0.08);
+    color: #fce803;
+    /* transform 由 LAYOUT_CONFIG 动态设置，hover 时只添加额外的 translateY */
+    transform: translateY(-0.25rem);
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+.grid-cell.sentence-selected {
+    background: #ffecb3;
+    border-color: #ffb300;
+    box-shadow: 0 4px 10px rgba(255, 193, 7, 0.4);
+}
+
+.grid-cell.rhyme-highlight {
+    background: #fff7e6;
+    border-color: #ff9800;
+    box-shadow: 0 2px 8px rgba(255, 152, 0, 0.35);
+}
+
+.grid-cell.row-selected {
+    background: rgba(102, 126, 234, 0.2);
+    border: 2px solid #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.grid-cell.col-selected {
+    background: rgba(102, 126, 234, 0.2);
+    border: 2px solid #667eea;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+/* 正确标记样式 */
+.grid-cell {
+    position: relative;
+}
+
+.correct-mark-container {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    display: block;
+    cursor: pointer;
+    font-size: 0.8em;
+    user-select: none;
+    animation: jello-horizontal 0.9s both;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.correct-mark-container:hover {
+    animation: jello-horizontal 0.9s both;
+}
+
+.correct-mark-checkmark {
+    position: relative;
+    top: 0;
+    left: 0;
+    height: 1.3em;
+    width: 1.3em;
+    border-radius: 50%;
+    background-color: royalblue;
+    animation: jello-horizontal 0.9s both;
+}
+
+.correct-mark-checkmark:after {
+    content: "";
+    position: absolute;
+    display: block;
+    left: 0.45em;
+    top: 0.25em;
+    width: 0.25em;
+    height: 0.5em;
+    border: solid white;
+    border-width: 0 0.15em 0.15em 0;
+    transform: rotate(45deg);
+}
+
+@keyframes jello-horizontal {
+    0% {
+        -webkit-transform: scale3d(1, 1, 1);
+        transform: scale3d(1, 1, 1);
+    }
+
+    30% {
+        -webkit-transform: scale3d(1.25, 0.75, 1);
+        transform: scale3d(1.25, 0.75, 1);
+    }
+
+    40% {
+        -webkit-transform: scale3d(0.75, 1.25, 1);
+        transform: scale3d(0.75, 1.25, 1);
+    }
+
+    50% {
+        -webkit-transform: scale3d(1.15, 0.85, 1);
+        transform: scale3d(1.15, 0.85, 1);
+    }
+
+    65% {
+        -webkit-transform: scale3d(0.95, 1.05, 1);
+        transform: scale3d(0.95, 1.05, 1);
+    }
+
+    75% {
+        -webkit-transform: scale3d(1.05, 0.95, 1);
+        transform: scale3d(1.05, 0.95, 1);
+    }
+
+    100% {
+        -webkit-transform: scale3d(1, 1, 1);
+        transform: scale3d(1, 1, 1);
+    }
+}
+
+.controls {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.grid-controls {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    padding: 0 10px;
+}
+
+.reset-btn {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    font-size: 1em;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: bold;
+}
+
+.reset-btn:hover {
+    background: #5568d3;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.reset-btn:active {
+    transform: translateY(0);
+}
+
+/* 检测结果对话框样式 */
+.result-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.result-dialog.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.result-dialog-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.result-dialog-content {
+    position: relative;
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    width: 90%;
+    max-height: 80vh;
+    overflow: hidden;
+    transform: scale(0.9) translateY(-20px);
+    transition: transform 0.3s linear(0, 0.012 0.9%, 0.05 2%, 0.411 9.2%, 0.517 11.8%, 0.611 14.6%, 0.694 17.7%, 0.765 21.1%, 0.824 24.8%, 0.872 28.9%, 0.91 33.4%, 0.939 38.4%, 0.977 50.9%, 0.994 68.4%, 1);
+}
+
+.result-dialog.active .result-dialog-content {
+    transform: scale(1) translateY(0);
+}
+
+.result-dialog-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.result-dialog-header h2 {
+    margin: 0;
+    font-size: 1.5em;
+    color: #333;
+    font-weight: bold;
+}
+
+.result-dialog-close {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: #999;
+    cursor: pointer;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.2s ease;
+    line-height: 1;
+}
+
+.result-dialog-close:hover {
+    background: #f5f5f5;
+    color: #333;
+}
+
+.result-dialog-body {
+    padding: 24px;
+    min-height: 80px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.result-message {
+    font-size: 1.1em;
+    line-height: 1.6;
+    text-align: center;
+    white-space: pre-line;
+    color: #333;
+}
+
+.result-message.success {
+    color: #4caf50;
+    font-weight: bold;
+}
+
+.result-message.error {
+    color: #f44336;
+}
+
+.result-message.info {
+    color: #667eea;
+}
+
+.result-dialog-footer {
+    padding: 16px 24px 24px;
+    display: flex;
+    justify-content: center;
+}
+
+/* 开始游戏弹窗 */
+.start-dialog {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 2000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+}
+
+.start-dialog.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.start-dialog-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(4px);
+}
+
+.start-dialog-content {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transform: scale(0.9) translateY(-20px);
+    transition: transform 0.3s;
+}
+
+.start-dialog.active .start-dialog-content {
+    transform: scale(1) translateY(0);
+}
+
+/* Get started 按钮样式 */
+.get-started-btn {
+    border: none;
+    display: block;
+    position: relative;
+    padding: 0.7em 2.4em;
+    font-size: 18px;
+    background: transparent;
+    cursor: pointer;
+    user-select: none;
+    overflow: hidden;
+    color: royalblue;
+    z-index: 1;
+    font-family: inherit;
+    font-weight: 500;
+}
+
+.get-started-btn span {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    z-index: -1;
+    border: 4px solid royalblue;
+}
+
+.get-started-btn span::before {
+    content: "";
+    display: block;
+    position: absolute;
+    width: 8%;
+    height: 500%;
+    background: var(--lightgray, #f5f5f5);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-60deg);
+    transition: all 0.3s;
+}
+
+.get-started-btn:hover span::before {
+    transform: translate(-50%, -50%) rotate(-90deg);
+    width: 100%;
+    background: royalblue;
+}
+
+.get-started-btn:hover {
+    color: white;
+}
+
+.get-started-btn:active span::before {
+    background: #2751cd;
+}
+
+.result-confirm-btn {
+    background: #667eea;
+    color: white;
+    border: none;
+    padding: 12px 40px;
+    font-size: 1em;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s linear(0, 0.012 0.9%, 0.05 2%, 0.411 9.2%, 0.517 11.8%, 0.611 14.6%, 0.694 17.7%, 0.765 21.1%, 0.824 24.8%, 0.872 28.9%, 0.91 33.4%, 0.939 38.4%, 0.977 50.9%, 0.994 68.4%, 1);
+    font-weight: bold;
+}
+
+.result-confirm-btn:hover {
+    background: #5568d3;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.result-confirm-btn:active {
+    transform: translateY(0);
+}
+
+/* 音乐控制按钮 */
+.music-toggle-btn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid rgba(102, 126, 234, 0.3);
+    background: rgba(102, 126, 234, 0.2);
+    color: #5568d3;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+    transition: all 0.3s ease;
+    padding: 0;
+}
+
+.music-toggle-btn:hover {
+    background: rgba(102, 126, 234, 0.3);
+    border-color: rgba(102, 126, 234, 0.5);
+    transform: scale(1.1);
+}
+
+.music-toggle-btn:active {
+    transform: scale(0.95);
+}
+
+.music-toggle-btn.paused .music-icon {
+    opacity: 0.5;
+}
+
+.music-toggle-btn.paused .music-icon::after {
+    content: '⏸';
+    position: absolute;
+    font-size: 16px;
+    opacity: 0.8;
+}
+
+.music-icon {
+    display: block;
+    line-height: 1;
+    transition: opacity 0.3s ease;
+}
+
+
